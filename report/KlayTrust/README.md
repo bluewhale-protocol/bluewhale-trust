@@ -2,7 +2,7 @@
 
 본 보고서는 Bluewhale의 KlayTrust 스마트 컨트랙트에 대한 잠재적 취약점 존재 여부 등 보안성 검증을 위해 Bluewhale 프로젝트팀에 의해 작성되었습니다. Bluewhale 프로젝트팀은 스마트 컨트랙트 전문 감사(Audit) 업체가 아니므로 스마트 컨트랙트에 대한 보안적 무결성을 완벽히 보장하지 않습니다. 따라서, Trust 스마트 컨트랙트 사용자는 본 보고서를 참고하여 스마트 컨트랙트의 잠재적 위험성을 직접 검증해야 합니다.
 
-
+<br />
 
 ## 문서 개정 이력
 
@@ -10,9 +10,9 @@
 | --------- | ---------- | --------- | --------- |
 | KLTRU-001 | 2021-05-09 | 신규 작성 | 초안 작성 |
 
+<br />
 
-
-
+<br />
 
 ## 검증 대상
 
@@ -21,9 +21,9 @@
   * klayswap/IKSLP.sol
   * klayswap/IKSP.sol
 
+<br />
 
-
-
+<br />
 
 ## 권한별 상태 변환 함수 접근 범위
 
@@ -33,12 +33,12 @@
 
 ```Solidity
 modifier onlyOwner() {
-    require(owner() == _msgSender(), "Ownable: caller is not the owner");
-    _;
+  require(owner() == _msgSender(), "Ownable: caller is not the owner");
+  _;
 }
 ```
 
-
+<br />
 
 **함수 접근 범위**
 
@@ -51,9 +51,9 @@ modifier onlyOwner() {
   * deposit()
   * withdraw()
 
+<br />
 
-
-
+<br />
 
 ## 보안성 검증
 
@@ -72,7 +72,7 @@ modifier onlyOwner() {
 * Block Timestamp Manipulation
 * Signature Replay
 
-
+<br />
 
 ### Re-Entrancy
 
@@ -81,7 +81,7 @@ modifier onlyOwner() {
 * 재진입을 공격을 방지하는 한정자 사용: (**[ReentrancyGuard](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol)**) nonReentrant
 * 외부 주소 호출(Transfer) 전 모든 상태 변경 처리
 
-
+<br />
 
 **`depositKlay()`**
 
@@ -127,32 +127,32 @@ _mint() 함수 호출을 모든 작업이 완료된 후 수행함으로써 재�
 - 공격자에게 불리한 작업(`IERC20(token).TransferFrom`)을 우선적으로 호출한 후 `_mint()`를 호출한다.
 -  `payable(address).transfer`로 재진입 공격 시 _mint() 함수가 호출되지 않아 totalSupply()가 증가하지 않는다. 따라서, shares 계산 시 공격자에게 불리한 결과값을 반환한다.
 
-
+<br />
 
 `withdraw()`
 
 ```
 function withdraw(uint256 _shares) external virtual override nonReentrant {
-    require(_shares > 0, "Withdraw must be greater than 0");
+  require(_shares > 0, "Withdraw must be greater than 0");
 
-    uint256 totalShares = balanceOf(msg.sender);
-    require(_shares <= totalShares, "Insufficient balance");
+  uint256 totalShares = balanceOf(msg.sender);
+  require(_shares <= totalShares, "Insufficient balance");
 
-    uint256 totalLP = _balanceLPTokenInKSLP();
+  uint256 totalLP = _balanceLPTokenInKSLP();
 
-    uint256 sharesLP = (totalLP.mul(_shares)).div(totalSupply());
+  uint256 sharesLP = (totalLP.mul(_shares)).div(totalSupply());
 
-    _burn(msg.sender, _shares);
+  _burn(msg.sender, _shares);
 
-    (uint256 beforeKlay, uint256 beforeToken) = _balanceInTrust();
-    _removeLiquidity(sharesLP);
-    (uint256 afterKlay, uint256 afterToken) = _balanceInTrust();
+  (uint256 beforeKlay, uint256 beforeToken) = _balanceInTrust();
+  _removeLiquidity(sharesLP);
+  (uint256 afterKlay, uint256 afterToken) = _balanceInTrust();
 
-    uint256 amountKlay = afterKlay.sub(beforeKlay);
-    uint256 amountToken = afterToken.sub(beforeToken);
+  uint256 amountKlay = afterKlay.sub(beforeKlay);
+  uint256 amountToken = afterToken.sub(beforeToken);
 
-    IERC20(tokenB).transfer(_msgSender(), amountToken);
-    msg.sender.transfer(amountKlay);
+  IERC20(tokenB).transfer(_msgSender(), amountToken);
+  msg.sender.transfer(amountKlay);
 }
 ```
 
@@ -163,9 +163,9 @@ _burn() 함수를 최우선적으로 호출함으로써 재진입 공격 시 이
 * 공격자에게 불리한 작업(`_burn()`)을 먼저 수행한다. 이후 `IERC20(token).TransferFrom()` 함수를 호출한다.
 * `payable(address).transfer`함수를 `withdraw` 함수의 마지막에서 호출함으로써 재진입 공격을 통한 이점을 제거함. 
 
+<br />
 
-
-
+<br />
 
 ### Arithmetic Overflow and Underflow
 
@@ -174,9 +174,9 @@ _burn() 함수를 최우선적으로 호출함으로써 재진입 공격 시 이
 - [SafeMath](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol)를 사용하여 오버플로 및 언더플로우를 방지함.
   - 모든 uint256 타입 데이터 사칙 연산에 SafeMath 함수를 적용함.
 
+<br />
 
-
-
+<br />
 
 ### Self Destruct
 
@@ -184,7 +184,7 @@ _burn() 함수를 최우선적으로 호출함으로써 재진입 공격 시 이
 
 - Trust 컨트랙트에서 selfdestruct를 사용하지 않음.
 
-
+<br />
 
 `_teamReward()`
 
@@ -205,9 +205,9 @@ return reward;
 
 - 특정 KLAY 잔고값(address(this).balance)에 의한 시스템 의사 결정 부분이 존재하지 않음.
 
+<br />
 
-
-
+<br />
 
 ### Accessing Private Data
 
@@ -215,9 +215,9 @@ return reward;
 
 - Trust 컨트랙트에 민감한 정보를 저장하지 않음.
 
+<br />
 
-
-
+<br />
 
 ### Delegatecall
 
@@ -225,9 +225,9 @@ return reward;
 
 - Trust 컨트랙트에서 delegatecall을 사용하지 않음.
 
+<br />
 
-
-
+<br />
 
 ### Source of Randomness
 
@@ -235,9 +235,9 @@ return reward;
 
 - blockhash 및 block.timestamp을 통해 무작위성을 요구하는 부분이 존재하지 않음
 
+<br />
 
-
-
+<br />
 
 ### Denial of Service
 
@@ -249,9 +249,9 @@ return reward;
     - 피해 범위는 최종 재예치 이후부터 보상으로 받는 KSP에 한정됨.
     - 탈취 시 대응 방안: F/E 레벨에서 입금 버튼 비활성화 및 공지
 
+<br />
 
-
-
+<br />
 
 ### Phishing with tx.origin
 
@@ -259,9 +259,9 @@ return reward;
 
 - Trust 컨트랙트에서 tx.origin을 사용하지 않음.
 
+<br />
 
-
-
+<br />
 
 ### Hiding Malicious Code with External Contract
 
@@ -284,9 +284,9 @@ Solidity는 address에 지정된 컨트랙트가 형변환(Casting)되지 않은
   address public teamWallet;
   ```
 
+<br />
 
-
-
+<br />
 
 ### Front Running
 
@@ -294,9 +294,9 @@ Solidity는 address에 지정된 컨트랙트가 형변환(Casting)되지 않은
 
 - 공격자가 Front Running을 수행했을 때 얻을 수 있는 이점이 존재하지 않음.
 
+<br />
 
-
-
+<br />
 
 ### Block Timestamp Manipulation
 
@@ -304,9 +304,9 @@ Solidity는 address에 지정된 컨트랙트가 형변환(Casting)되지 않은
 
 - Trust 컨트랙트에서 block.timestamp을 사용하지 않음.
 
+<br />
 
-
-
+<br />
 
 ### Signature Replay
 
@@ -314,15 +314,15 @@ Solidity는 address에 지정된 컨트랙트가 형변환(Casting)되지 않은
 
 - Trust 컨트랙트에서 Sign messages를 이용하지 않음.
 
+<br />
 
-
-
+<br />
 
 ## Owner 주소의 개인키가 탈취될 경우 위험성
 
 Owner의 개인 키(Private Key)가 공격자에 의해 탈취될 경우, onlyOwner 한정자가 적용된 함수들이 악용될 잠재적 위험성을 검토한다.
 
-
+<br />
 
 **onlyOwner 한정자 적용 함수 목록**:
 
@@ -333,7 +333,7 @@ Owner의 개인 키(Private Key)가 공격자에 의해 탈취될 경우, onlyOw
 - setFee()
 - setTeamWallet()
 
-
+<br />
 
 `rebalance()`
 
@@ -349,7 +349,7 @@ function rebalance() public virtual override onlyOwner {
 
 rebalance() 함수는 _claim(), _swap(), _addLiquidityAll() 3가지 함수를 순차적으로 호출함.
 
-
+<br />
 
 `claim()`
 
@@ -367,7 +367,7 @@ function _claim() internal {
 
 claim() 함수는 [Klayswap LP](https://docs.klayswap.com/contract/exchange) 컨트랙트의 claimReward() 함수를 호출하여 누적 KSP 보상을 수령함. 고정된 컨트랙트 주소에 지정된 함수만 호출됨으로 악용 가능성이 존재하지 않음. 
 
-
+<br />
 
 `swap()`
 
@@ -411,32 +411,32 @@ function _swap() internal {
 
 ```
 function _teamReward(uint256 earned) internal returns (uint256) {
-    uint256 reward = (earned.mul(fee)).div(10000);
+  uint256 reward = (earned.mul(fee)).div(10000);
 
-    address payable owner = payable(owner());
-    uint256 ownerKlay = owner.balance; 
+  address payable owner = payable(owner());
+  uint256 ownerKlay = owner.balance; 
 
-    //For transaction call fee
-    if(ownerKlay < 3 ether) {
-        uint256 estimated = IKSLP(klayKspPool).estimatePos(ksp, reward);
-        uint256 least = (estimated.mul(99)).div(100);
+  //For transaction call fee
+  if(ownerKlay < 3 ether) {
+    uint256 estimated = IKSLP(klayKspPool).estimatePos(ksp, reward);
+    uint256 least = (estimated.mul(99)).div(100);
 
-        uint256 beforeKlay = (payable(address(this))).balance;
-        address[] memory path = new address[](0);
-        IKSP(ksp).exchangeKctPos(ksp, reward, address(0), least, path);
-        uint256 afterKlay = (payable(address(this))).balance;
+    uint256 beforeKlay = (payable(address(this))).balance;
+    address[] memory path = new address[](0);
+    IKSP(ksp).exchangeKctPos(ksp, reward, address(0), least, path);
+    uint256 afterKlay = (payable(address(this))).balance;
 
-        uint256 amount = afterKlay.sub(beforeKlay);
-        owner.transfer(amount);
+    uint256 amount = afterKlay.sub(beforeKlay);
+    owner.transfer(amount);
 
-        return reward;
-    }
-    else if(teamWallet != address(0)) {
-        IERC20(ksp).transfer(teamWallet, reward);
-        return reward;
-    }
+    return reward;
+  }
+  else if(teamWallet != address(0)) {
+    IERC20(ksp).transfer(teamWallet, reward);
+    return reward;
+  }
 
-    return 0;
+  return 0;
 }
 ```
 
@@ -446,7 +446,7 @@ function _teamReward(uint256 earned) internal returns (uint256) {
 
 **결론적으로, 피해 범위는 마지막 재예치 시점 이후부터 보상으로 받는 KSP에 한정됨.**
 
-
+<br />
 
 **대응책**
 
@@ -459,30 +459,30 @@ function _teamReward(uint256 earned) internal returns (uint256) {
 
 > 예방: Owner 개인키 암호화를 통해 탈취 가능성을 최소화함.
 
+<br />
 
-
-
+<br />
 
 `addLiquidityAll()`
 
 ```
 function _addLiquidityAll() internal {
-    uint256 balanceKlay = (payable(address(this))).balance;
-    uint256 balanceToken = IERC20(tokenB).balanceOf(address(this));
+  uint256 balanceKlay = (payable(address(this))).balance;
+  uint256 balanceToken = IERC20(tokenB).balanceOf(address(this));
 
-    if(balanceKlay > 0 && balanceToken > 0){
-        uint256 estimatedKlay = estimateSupply(tokenB, balanceToken);
-        uint256 estimatedToken = estimateSupply(tokenA, balanceKlay);
+  if(balanceKlay > 0 && balanceToken > 0){
+    uint256 estimatedKlay = estimateSupply(tokenB, balanceToken);
+    uint256 estimatedToken = estimateSupply(tokenA, balanceKlay);
 
-        if(balanceToken >= estimatedToken)
-            _addLiquidity(balanceKlay, estimatedToken);
-        else
-            _addLiquidity(estimatedKlay, balanceToken);
-    }
+    if(balanceToken >= estimatedToken)
+    	_addLiquidity(balanceKlay, estimatedToken);
+    else
+    	_addLiquidity(estimatedKlay, balanceToken);
+  }
 }
 
 function _addLiquidity(uint256 _amountKlay, uint256 _amountToken) internal { 
-    IKSLP(kslp).addKlayLiquidity{value: _amountKlay}(_amountToken);
+	IKSLP(kslp).addKlayLiquidity{value: _amountKlay}(_amountToken);
 }
 ```
 
@@ -490,18 +490,18 @@ function _addLiquidity(uint256 _amountKlay, uint256 _amountToken) internal {
 
 addLiquidity() 함수는 [Klayswap LP](https://docs.klayswap.com/contract/exchange) 컨트랙트의 addKlayLiquidity() 함수를 호출하여 Trust에 예치된 자산 전체를 Klayswap LP에 예치함. 고정된 컨트랙트 주소에 지정된 함수만 호출됨으로 악용 가능성이 존재하지 않음 
 
+<br />
 
-
-
+<br />
 
 `setFee()`
 
 ```
 function setFee(uint256 _fee) public onlyOwner {
-    require(0 <= _fee && _fee <= 3000, "The fee must be between 0 and 10000");
-    require(_fee != fee, "Can't set the same value as before");
-    emit FeeChanged(fee, _fee);
-    fee = _fee;
+  require(0 <= _fee && _fee <= 3000, "The fee must be between 0 and 10000");
+  require(_fee != fee, "Can't set the same value as before");
+  emit FeeChanged(fee, _fee);
+  fee = _fee;
 }
 ```
 
@@ -511,7 +511,7 @@ function setFee(uint256 _fee) public onlyOwner {
 
 **결론적으로, 피해 범위는 최종 재예치 이후부터 보상으로 받는 KSP에 한정됨.**
 
-
+<br />
 
 **대응책**
 
@@ -527,18 +527,18 @@ function setFee(uint256 _fee) public onlyOwner {
 
 > 예방: Owner 개인키 암호화를 통해 탈취 가능성을 최소화함.
 
+<br />
 
-
-
+<br />
 
 `setTeamWallet()`
 
 ```
 function setTeamWallet(address _teamWallet) public onlyOwner {
-    require(_teamWallet != address(0), "Team wallet address can't be 0x0");
-    require(_teamWallet != teamWallet, "Can't set the same value as before");
-    emit TeamWalletChanged(teamWallet, _teamWallet);
-    teamWallet = _teamWallet;
+  require(_teamWallet != address(0), "Team wallet address can't be 0x0");
+  require(_teamWallet != teamWallet, "Can't set the same value as before");
+  emit TeamWalletChanged(teamWallet, _teamWallet);
+  teamWallet = _teamWallet;
 }
 ```
 
@@ -548,21 +548,21 @@ teamWallet이 사용되는 코드 부분에 위험성이 존재하지 않음.
 IERC20(ksp).transfer(teamWallet, reward);
 ```
 
+<br />
 
-
-
+<br />
 
 ### Non-upgradable Smart Contract
 
 Trust 스마트 컨트랙트는 Upgradable Pattern이 적용되어 있지 않으므로 컨트랙트 코드가 임의로 변경될 가능성이 존재하지 않는다. 
 
-
+<br />
 
 > 전문 Audit 업체의 감사를 통해 검증받은 DeFi 프로젝트들에서도 러그 풀(Rug pull)이 발생한 사례가 존재한다. 대부분의 경우, 주요 컨트랙트에 Upgradable Pattern이 적용되어 Ownership에 의한 악의적 컨트랙트 코드 변경이 원인이다. Trust 컨트랙트는 이러한 잠재적 위험성을 사전에 차단하기 위해 Proxy 컨트랙트를 사용하지 않는다.
 
+<br />
 
-
-
+<br />
 
 ## 검증 결과
 
@@ -571,3 +571,4 @@ Trust 스마트 컨트랙트는 Upgradable Pattern이 적용되어 있지 않으
   * 최대 피해 범위 : 최종 재예치 시점 이후부터 누적된 보상 KSP
   * 대응 방안: 관련 Event 감지에 따른 자동 F/E 수준의 입금차단 및 알림 처리
 
+<br />
