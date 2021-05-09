@@ -5,4 +5,4 @@
 
 
 * [KctTrust](./KctTrust/README.md)
-* KlayTrust (Not yet)
+* [KlayTrust](./KlayTrust/README.md)

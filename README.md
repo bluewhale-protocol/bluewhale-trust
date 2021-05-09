@@ -7,7 +7,7 @@ Bluewhale Trust Pool은 KLAYswap 유동성 풀 재예치 투자자의 반복적�
 ## 컨트랙트 보안성 보고서(Smart Contract Security Report)
 
 * [KctTrust](./report/KctTrust/README.md)
-* KlayTrust (**Not Yet**)
+* [KlayTrust](./report/KlayTrust/README.md)
 
 
 

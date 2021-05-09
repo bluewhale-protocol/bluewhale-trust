@@ -1,15 +1,14 @@
 # KctTrust Security Report
 
-본 보고서는 Bluewhale의 KctTrust 스마트 컨트랙트에 대한 잠재적 취약점 존재 여부 등 보안성 검증을 위해 Bluewhale 프로젝트팀에 의해 작성되었습니다. Bluewhale 프로젝트팀은 스마트 컨트랙트 전문 감사(Audit) 업체가 아니므로 스마트 컨트랙트에 대한 보안적 무결성을 완벽히 보장하지 않습니다. 따라서, Trust 스마트 컨트랙트 사용자는 본 보고서를 참고하여 스마트 컨트랙트의 잠재적 위험성을 직접 검증해야 합니다.
+본 보고서는 Bluewhale의 KlayTrust 스마트 컨트랙트에 대한 잠재적 취약점 존재 여부 등 보안성 검증을 위해 Bluewhale 프로젝트팀에 의해 작성되었습니다. Bluewhale 프로젝트팀은 스마트 컨트랙트 전문 감사(Audit) 업체가 아니므로 스마트 컨트랙트에 대한 보안적 무결성을 완벽히 보장하지 않습니다. 따라서, Trust 스마트 컨트랙트 사용자는 본 보고서를 참고하여 스마트 컨트랙트의 잠재적 위험성을 직접 검증해야 합니다.
 
 
 
 ## 문서 개정 이력
 
-| 개정 번호 | 개정 일자  | 구분      | 개정 내용                                                    |
-| --------- | ---------- | --------- | ------------------------------------------------------------ |
-| KCTRU-001 | 2021-05-08 | 신규 작성 | 초안 작성                                                    |
-| KCTRU-002 | 2021-05-09 | 정정      | _addLiquidity() 함수 내용 정정<br />수정 전: IKSLP(kslp).addKlayLiquidity{value: _amountKlay}(_amountToken);<br />수정 후: IKSLP(kslp).addKctLiquidity(_amountA, _amountB); |
+| 개정 번호 | 개정 일자  | 구분      | 개정 내용 |
+| --------- | ---------- | --------- | --------- |
+| KLTRU-001 | 2021-05-09 | 신규 작성 | 초안 작성 |
 
 
 
@@ -17,7 +16,7 @@
 
 ## 검증 대상
 
-* [KctTrust.sol](../../contracts/KctTrust.sol)
+* [KlayTrust.sol](../../contracts/KlayTrust.sol)
   * ITrust.sol
   * klayswap/IKSLP.sol
   * klayswap/IKSP.sol
@@ -84,40 +83,40 @@ modifier onlyOwner() {
 
 
 
-**`deposit()`**
+**`depositKlay()`**
 
 ```
-function deposit(
-		uint256 _amountA, uint256 _amountB
-) external virtual override nonReentrant {
-    require(_amountA > 0 && _amountB > 0, "Deposit must be greater than 0");
+function depositKlay(
+	uint256 _amount
+) external payable virtual override nonReentrant {
+  require(_amountA > 0 && _amountB > 0, "Deposit must be greater than 0");
 
-    (uint256 beforeA, uint256 beforeB) = _balanceInTrust();
-    uint256 beforeLP = _balanceLPTokenInKSLP();
+  (uint256 beforeKlay, uint256 beforeToken) = _balanceInTrust();
+  beforeKlay = beforeKlay.sub(msg.value);
+  uint256 beforeLP = _balanceLPTokenInKSLP();
 
-    IERC20(tokenA).transferFrom(_msgSender(), address(this), _amountA);
-    IERC20(tokenB).transferFrom(_msgSender(), address(this), _amountB);
-    _addLiquidity(_amountA, _amountB);
+  IERC20(tokenB).transferFrom(_msgSender(), address(this), _amount);
+  _addLiquidity(msg.value, _amount);
 
-    (uint256 afterA, uint256 afterB) = _balanceInTrust();
-    uint256 afterLP = _balanceLPTokenInKSLP();
+  (uint256 afterKlay, uint256 afterToken) = _balanceInTrust();
+  uint256 afterLP = _balanceLPTokenInKSLP();
 
-    uint256 remainingA = afterA.sub(beforeA);
-    uint256 remainingB = afterB.sub(beforeB);
-    uint256 increasedLP = afterLP.sub(beforeLP);
+  uint256 remainingKlay = afterKlay.sub(beforeKlay);
+  uint256 remainingToken = afterToken.sub(beforeToken);
+  uint256 increasedLP = afterLP.sub(beforeLP);
 
-    uint256 shares = 0;
-    if (totalSupply() < 1)
-        shares = increasedLP;
-    else
-        shares = (increasedLP.mul(totalSupply())).div(beforeLP);
+  uint256 shares = 0;
+  if (totalSupply() < 1)
+  	shares = increasedLP;
+  else
+  	shares = (increasedLP.mul(totalSupply())).div(beforeLP);
 
-    if(remainingA > 0)
-        IERC20(tokenA).transfer(_msgSender(), remainingA);
-    if(remainingB > 0)
-        IERC20(tokenB).transfer(_msgSender(), remainingB);
+  if(remainingToken > 0)
+  	IERC20(tokenB).transfer(_msgSender(), remainingToken);
+  if(remainingKlay > 0)
+  	msg.sender.transfer(remainingKlay);
 
-    _mint(_msgSender(), shares);
+  _mint(_msgSender(), shares);
 }
 ```
 
@@ -126,7 +125,7 @@ function deposit(
 _mint() 함수 호출을 모든 작업이 완료된 후 수행함으로써 재진입 공격 시 이점을 제거함.
 
 - 공격자에게 불리한 작업(`IERC20(token).TransferFrom`)을 우선적으로 호출한 후 `_mint()`를 호출한다.
--  `deposit()` 함수는 payable(address).transfer 호출이 존재하지 않음.
+-  `payable(address).transfer`로 재진입 공격 시 _mint() 함수가 호출되지 않아 totalSupply()가 증가하지 않는다. 따라서, shares 계산 시 공격자에게 불리한 결과값을 반환한다.
 
 
 
@@ -136,24 +135,24 @@ _mint() 함수 호출을 모든 작업이 완료된 후 수행함으로써 재�
 function withdraw(uint256 _shares) external virtual override nonReentrant {
     require(_shares > 0, "Withdraw must be greater than 0");
 
-    uint256 totalShares = balanceOf(msg.sender);
-    require(_shares <= totalShares, "Insufficient balance");
+    uint256 totalShares = balanceOf(msg.sender);
+    require(_shares <= totalShares, "Insufficient balance");
 
-    uint256 totalLP = _balanceLPTokenInKSLP();
+    uint256 totalLP = _balanceLPTokenInKSLP();
 
-    uint256 sharesLP = (totalLP.mul(_shares)).div(totalSupply());
+    uint256 sharesLP = (totalLP.mul(_shares)).div(totalSupply());
 
-    _burn(msg.sender, _shares);
+    _burn(msg.sender, _shares);
 
-    (uint256 beforeA, uint256 beforeB) = _balanceInTrust();
-    _removeLiquidity(sharesLP);
-    (uint256 afterA, uint256 afterB) = _balanceInTrust();
+    (uint256 beforeKlay, uint256 beforeToken) = _balanceInTrust();
+    _removeLiquidity(sharesLP);
+    (uint256 afterKlay, uint256 afterToken) = _balanceInTrust();
 
-    uint256 withdrawalA = afterA.sub(beforeA);
-    uint256 withdrawalB = afterB.sub(beforeB);
+    uint256 amountKlay = afterKlay.sub(beforeKlay);
+    uint256 amountToken = afterToken.sub(beforeToken);
 
-    IERC20(tokenA).transfer(_msgSender(), withdrawalA);
-    IERC20(tokenB).transfer(_msgSender(), withdrawalB);
+    IERC20(tokenB).transfer(_msgSender(), amountToken);
+    msg.sender.transfer(amountKlay);
 }
 ```
 
@@ -162,7 +161,7 @@ function withdraw(uint256 _shares) external virtual override nonReentrant {
 _burn() 함수를 최우선적으로 호출함으로써 재진입 공격 시 이점을 제거함.
 
 * 공격자에게 불리한 작업(`_burn()`)을 먼저 수행한다. 이후 `IERC20(token).TransferFrom()` 함수를 호출한다.
-* `withdraw()` 함수는 payable(address).transfer 호출이 존재하지 않음.
+* `payable(address).transfer`함수를 `withdraw` 함수의 마지막에서 호출함으로써 재진입 공격을 통한 이점을 제거함. 
 
 
 
@@ -378,37 +377,35 @@ function swap() public onlyOwner {
 }
 
 function _swap() internal {
-    uint256 earned = IERC20(ksp).balanceOf(address(this));
+  uint256 earned = IERC20(ksp).balanceOf(address(this));
 
-    if(earned > 0){
-        address[] memory path = new address[](1);
-        path[0] = address(0);
+  if(earned > 0){
+  	uint256 balanceA = (payable(address(this))).balance; // Klay balance
+  	uint256 balanceB = IERC20(tokenB).balanceOf(address(this));
 
-        uint256 balanceA = IERC20(tokenA).balanceOf(address(this));
-        uint256 balanceB = IERC20(tokenB).balanceOf(address(this));
+    uint256 balanceABasedKSP = _estimateBasedKSP(tokenA, balanceA);
+    uint256 balanceBBasedKSP = _estimateBasedKSP(tokenB, balanceB);
 
-        uint256 balanceABasedKSP = _estimateBasedKSP(tokenA, balanceA);
-        uint256 balanceBBasedKSP = _estimateBasedKSP(tokenB, balanceB);
+    uint256 netEarned = earned.sub(_teamReward(earned));
 
-        uint256 netEarned = earned.sub(_teamReward(earned));
+    if(tokenB == ksp)
+    	balanceBBasedKSP = 0;
 
-        uint256 swapAmount = 
-					((netEarned.sub(balanceABasedKSP)).sub(balanceBBasedKSP)).div(2);
-        
-        uint256 swapAmountA = swapAmount.add(balanceBBasedKSP);
-        uint256 swapAmountB = swapAmount.add(balanceABasedKSP);
+    uint256 swapAmount = ((netEarned.sub(balanceABasedKSP)).sub(balanceBBasedKSP)).div(2);
 
-        if(swapAmountA > 0){
-            uint256 least = 
-							(_estimateKSPToToken(tokenA, swapAmountA).mul(99)).div(100);
-            IKSP(ksp).exchangeKctPos(ksp, swapAmountA, tokenA, least, path); 
-        }
-        if(swapAmountB > 0){
-            uint256 least = 
-							(_estimateKSPToToken(tokenB, swapAmountB).mul(99)).div(100);
-            IKSP(ksp).exchangeKctPos(ksp, swapAmountB, tokenB, least, path); 
-        }
+    uint256 swapAmountA = swapAmount.add(balanceBBasedKSP);
+    uint256 swapAmountB = swapAmount.add(balanceABasedKSP);
+
+    if(swapAmountA > 0){
+    	address[] memory path = new address[](0);
+    	_swapKSPToToken(tokenA, swapAmountA, path);
     }
+    if(swapAmountB > 0){
+    	address[] memory path = new address[](1);
+    	path[0] = address(0);
+    	_swapKSPToToken(tokenB, swapAmountB, path);
+    }
+  }
 }
 ```
 
@@ -470,28 +467,28 @@ function _teamReward(uint256 earned) internal returns (uint256) {
 
 ```
 function _addLiquidityAll() internal {
-  uint256 balanceA = IERC20(tokenA).balanceOf(address(this));
-  uint256 balanceB = IERC20(tokenB).balanceOf(address(this));
+    uint256 balanceKlay = (payable(address(this))).balance;
+    uint256 balanceToken = IERC20(tokenB).balanceOf(address(this));
 
-  if(balanceA > 0 && balanceB > 0){
-  	uint256 estimatedA = estimateSupply(tokenB, balanceB);
-  	uint256 estimatedB = estimateSupply(tokenA, balanceA);
+    if(balanceKlay > 0 && balanceToken > 0){
+        uint256 estimatedKlay = estimateSupply(tokenB, balanceToken);
+        uint256 estimatedToken = estimateSupply(tokenA, balanceKlay);
 
-  if(balanceB >= estimatedB)
-  	_addLiquidity(balanceA, estimatedB);
-  else
-  	_addLiquidity(estimatedA, balanceB);
-  }
+        if(balanceToken >= estimatedToken)
+            _addLiquidity(balanceKlay, estimatedToken);
+        else
+            _addLiquidity(estimatedKlay, balanceToken);
+    }
 }
 
-function _addLiquidity(uint256 _amountA, uint256 _amountB) internal {
-	IKSLP(kslp).addKctLiquidity(_amountA, _amountB);
+function _addLiquidity(uint256 _amountKlay, uint256 _amountToken) internal { 
+    IKSLP(kslp).addKlayLiquidity{value: _amountKlay}(_amountToken);
 }
 ```
 
 **Comment**
 
-addLiquidity() 함수는 [Klayswap LP](https://docs.klayswap.com/contract/exchange) 컨트랙트의 addKctLiquidity() 함수를 호출하여 Trust에 예치된 자산 전체를 Klayswap LP에 예치함. 고정된 컨트랙트 주소에 지정된 함수만 호출됨으로 악용 가능성이 존재하지 않음 
+addLiquidity() 함수는 [Klayswap LP](https://docs.klayswap.com/contract/exchange) 컨트랙트의 addKlayLiquidity() 함수를 호출하여 Trust에 예치된 자산 전체를 Klayswap LP에 예치함. 고정된 컨트랙트 주소에 지정된 함수만 호출됨으로 악용 가능성이 존재하지 않음 
 
 
 
@@ -501,7 +498,7 @@ addLiquidity() 함수는 [Klayswap LP](https://docs.klayswap.com/contract/exchan
 
 ```
 function setFee(uint256 _fee) public onlyOwner {
-    require(0 <= _fee && _fee <= 10000, "The fee must be between 0 and 10000");
+    require(0 <= _fee && _fee <= 3000, "The fee must be between 0 and 10000");
     require(_fee != fee, "Can't set the same value as before");
     emit FeeChanged(fee, _fee);
     fee = _fee;

@@ -1,6 +1,8 @@
 pragma solidity ^0.6.0;
 
-interface IKctTrust {
+interface ITrust {
+
+    function depositKlay(uint256 amount) external payable;
 
     function deposit(uint256 amountA, uint256 amountB) external;
 
