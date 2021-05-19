@@ -61,7 +61,7 @@ contract BaseTrust is ITrust, ERC20, Ownable, ReentrancyGuard {
     }
 
     function estimateSupply(address token, uint256 amount) public view virtual override returns (uint256) {
-        require(token == tokenA || token == tokenB, "Invalid token address");
+        require(token == tokenA || token == tokenB);
 
         uint256 pos = IKSLP(kslp).estimatePos(token, amount);
         uint256 neg = IKSLP(kslp).estimateNeg(token, amount);
@@ -71,7 +71,7 @@ contract BaseTrust is ITrust, ERC20, Ownable, ReentrancyGuard {
     
     function estimateRedeem(uint256 shares) public view virtual override returns (uint256, uint256) {
         uint256 totalBWTP = totalSupply();
-        require(shares <= totalBWTP, "Requested shares exceeded total supply.");
+        require(shares <= totalBWTP);
 
         (uint256 balanceA, uint256 balanceB) = totalValue();
 
@@ -164,7 +164,7 @@ contract BaseTrust is ITrust, ERC20, Ownable, ReentrancyGuard {
 
     function _removeLiquidity(uint256 _amount) internal {
         uint256 totalLP = _balanceKSLP();
-        require(_amount <= totalLP, "Required amount exceed balance");
+        require(_amount <= totalLP);
         
         IKSLP(kslp).removeLiquidity(_amount);
     }
@@ -245,7 +245,7 @@ contract BaseTrust is ITrust, ERC20, Ownable, ReentrancyGuard {
     }
 
     function _estimateBasedKSP(address token, uint256 amount) internal view returns (uint256) {
-        require(token == tokenA || token == tokenB, "Invalid token address");
+        require(token == tokenA || token == tokenB);
 
         if(token == ksp){
             return amount;
@@ -269,7 +269,7 @@ contract BaseTrust is ITrust, ERC20, Ownable, ReentrancyGuard {
     }
 
     function _estimateKSPToToken(address token, uint256 kspAmount) internal view returns (uint256) {
-        require(token == tokenA || token == tokenB, "Invalid token address");
+        require(token == tokenA || token == tokenB);
 
         if(token == ksp){
             return kspAmount;
@@ -321,15 +321,15 @@ contract BaseTrust is ITrust, ERC20, Ownable, ReentrancyGuard {
     }
 
     function setFee(uint256 _fee) public onlyOwner {
-        require(0 <= _fee && _fee <= 10000, "The fee must be between 0 and 10000");
-        require(_fee != fee, "Can't set the same value as before");
+        require(0 <= _fee && _fee <= 10000);
+        require(_fee != fee);
         emit FeeChanged(fee, _fee);
         fee = _fee;
     }
 
     function setTeamWallet(address _teamWallet) public onlyOwner {
-        require(_teamWallet != address(0), "Team wallet address can't be 0x0");
-        require(_teamWallet != teamWallet, "Can't set the same value as before");
+        require(_teamWallet != address(0));
+        require(_teamWallet != teamWallet);
         emit TeamWalletChanged(teamWallet, _teamWallet);
         teamWallet = _teamWallet;
     }

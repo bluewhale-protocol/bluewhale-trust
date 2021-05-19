@@ -76,4 +76,16 @@ contract KctTrustV2 is BaseTrust {
         IERC20(tokenA).transfer(_msgSender(), withdrawalA);
         IERC20(tokenB).transfer(_msgSender(), withdrawalB);
     }
+
+    function withdrawKSLP(uint256 _shares) external nonReentrant {
+        require(_shares > 0, "Withdraw must be greater than 0");
+        require(_shares <= balanceOf(msg.sender), "Insufficient balance");
+
+        uint256 totalLP = _balanceKSLP();
+        uint256 sharesLP = (totalLP.mul(_shares)).div(totalSupply());
+
+        _burn(msg.sender, _shares);
+
+        IERC20(kslp).transfer(_msgSender(), sharesLP);
+    }
 }
