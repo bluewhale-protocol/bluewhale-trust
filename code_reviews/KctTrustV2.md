@@ -209,7 +209,7 @@ function deposit(
   
   (uint256 afterAInKSLP, uint256 afterBInKSLP) = IKSLP(kslp).getCurrentPool();
   uint256 afterLP = _balanceKSLP();
-```
+  ```
   
 * kslp에 예치 후 남은 자산을 계산한다.
 
