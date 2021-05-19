@@ -24,7 +24,7 @@
 contract KlayTrustV2 is BaseTrust
 ```
 
-KlayTrustV2는 [BaseTrust.sol]((../contracts/BaseTrust.sol))의 BaseTrust 컨트랙트를 상속한다.
+KlayTrustV2는 [BaseTrust.sol](../contracts/BaseTrust.sol)의 BaseTrust 컨트랙트를 상속한다.
 
 <br /><br />
 
