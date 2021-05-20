@@ -8,7 +8,8 @@
 
 | 개정 번호 | 개정 일자  | 구분      | 개정 내용 |
 | --------- | ---------- | --------- | --------- |
-| KLTRU2-001 | 2021-05-18 | 신규 작성 | 초안 작성 |
+| KLTRU2-001 | 2021-05-19 | 신규 작성 | 초안 작성 |
+| KLTRU2-002 | 2021-05-20 | 내용 추가 | withdrawKSLP 추가 |
 
 <br />
 
@@ -56,6 +57,7 @@ modifier onlyOwner() {
     * deposit()
     * depositKlay()
     * withdraw()
+    * withdrawKSLP()
 
 <br />
 
@@ -177,7 +179,29 @@ _burn() 함수를 최우선적으로 호출함으로써 재진입 공격 시 이
 
 <br />
 
-<br />
+**`KlayTrustV2.withdrawKSLP()`**
+
+```
+function withdrawKSLP(uint256 _shares) external nonReentrant {
+  require(_shares > 0, "Withdraw must be greater than 0");
+  require(_shares <= balanceOf(msg.sender), "Insufficient balance");
+
+  uint256 totalLP = _balanceKSLP();
+  uint256 sharesLP = (totalLP.mul(_shares)).div(totalSupply());
+
+  _burn(msg.sender, _shares);
+
+  IERC20(kslp).transfer(_msgSender(), sharesLP);
+}
+```
+
+**Comment**
+
+_burn() 함수를 최우선적으로 호출함으로써 재진입 공격 시 이점을 제거함.
+
+공격자에게 불리한 작업(`_burn()`)을 먼저 수행한다. 이후 `IERC20(kslp).TransferFrom()` 함수를 호출한다.
+
+<br /><br />
 
 ### Arithmetic Overflow and Underflow
 
