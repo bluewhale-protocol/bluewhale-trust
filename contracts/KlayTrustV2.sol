@@ -6,6 +6,8 @@ import "./klayswap/IKSLP.sol";
 
 contract KlayTrustV2 is BaseTrust {
 
+    uint256 public version = 2;
+
     constructor(
         string memory _name,
         string memory _symbol,
