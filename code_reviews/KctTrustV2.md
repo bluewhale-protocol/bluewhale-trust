@@ -6,9 +6,10 @@
 
 ## 문서 개정 이력
 
-| 개정 번호    | 개정 일자  | 구분      | 개정 내용 |
-| ------------ | ---------- | --------- | --------- |
-| CR-KCTRU-001 | 2021-05-19 | 신규 작성 | 초안 작성 |
+| 개정 번호    | 개정 일자  | 구분      | 개정 내용           |
+| ------------ | ---------- | --------- | ------------------- |
+| CR-KCTRU-001 | 2021-05-19 | 신규 작성 | 초안 작성           |
+| CR-KCTRU-002 | 2021-05-20 | 내용 추가 | withdrawKSLP() 추가 |
 
 <br /><br />
 
@@ -38,6 +39,7 @@ KctTrustV2는 [BaseTrust.sol](../contracts/BaseTrust.sol)의 BaseTrust 컨트랙
   * function deposit(uint256 amountA, uint256 amountB) external
   * function depositKlay(uint256 _amount) external payable
   * function withdraw(uint256 _shares) external
+  * function withdrawKSLP(uint256 _shares) external
 
 <br /><br />
 
@@ -382,6 +384,77 @@ function withdraw(uint256 _shares) external virtual override nonReentrant {
   ``` 
   IERC20(tokenA).transfer(_msgSender(), withdrawalA);
   IERC20(tokenB).transfer(_msgSender(), withdrawalB);
+  ```
+
+<br /><br />
+
+### withdrawKSLP
+
+withdrawKSLP는 Trust가 보유한 KSLP를 직접 인출하기 위해 사용하는 함수이다. 일반적인 경우에는 사용하지 않는다. Klayswap 유동성 풀에서 유동성 제거가 정상적으로 되지 않는 경우를 대비해 준비된 함수이다.
+
+Trust에 입금된 BWTP는 소각되며, 입금 BWTP에 대응되는 KSLP를 호출자에게 송금한다.
+
+<br />
+
+**매개변수**
+
+- `_shares` :  인출을 희망하는 지분토큰(BWTP) 수량
+
+**한정자**
+
+- nonReentrant : withdraw 함수는 재진입이 불가능하다.
+
+<br />
+
+**전체 코드**
+
+```
+function withdrawKSLP(uint256 _shares) external nonReentrant {
+  require(_shares > 0, "Withdraw must be greater than 0");
+  require(_shares <= balanceOf(msg.sender), "Insufficient balance");
+
+  uint256 totalLP = _balanceKSLP();
+  uint256 sharesLP = (totalLP.mul(_shares)).div(totalSupply());
+
+  _burn(msg.sender, _shares);
+
+  IERC20(kslp).transfer(_msgSender(), sharesLP);
+}
+```
+
+**코드 설명**
+
+- 입금 지분 토큰(BWTP)의 수량은 0보다 큰 값이어야 한다.
+
+- ```
+  require(_shares > 0, "Withdraw must be greater than 0");
+  ```
+
+- 입금 지분 토큰의 수량은 호출자가 보유한 전체 지분 토큰 수량보다 작거나 같아야한다.
+
+- ```
+  require(_shares <= balanceOf(msg.sender), "Insufficient balance");
+  ```
+
+- 입금된 지분 토큰에 대응되는 KSLP 수량을 계산한다.
+
+  - 지분 토큰 대응 KSLP = Trust 보유 KSLP`totalLP` x (입금 지분 토큰`_shares` / 전체 발행량`totalSupply()`)
+
+- ```
+  uint256 totalLP = _balanceKSLP();
+  uint256 sharesLP = (totalLP.mul(_shares)).div(totalSupply());
+  ```
+
+- 입금된 지분 토큰을 소각한다.
+
+- ```
+  _burn(msg.sender, _shares);
+  ```
+
+- kslp를 호출자에게 송금한다.
+
+  ```
+  IERC20(kslp).transfer(_msgSender(), sharesLP);
   ```
 
 <br /><br />
