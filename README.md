@@ -11,11 +11,13 @@ Bluewhale Trust Pool은 KLAYswap 유동성 풀 재예치 투자자의 반복적�
 * [KctTrust](./report/KctTrust/README.md)
   * [KUSDT-KDAI]
 * [KctTrustV2](./report/KctTrustV2/README.md)
-  * [KORC-KDAI]
+  * [KORC-KDAI, KORC-KUSDT, KORC-KXRP, KSP-KORC, KSP-KDAI, KSP-KUSDT, KSP-KXRP]
 * [KlayTrust](./report/KlayTrust/README.md)
   * [KLAY-KUSDT, KLAY-KDAI]
 * [KlayTrustV2](./report/KlayTrustV2/README.md)
   * [KLAY-KXRP, KLAY-KETH, KLAY-KORC, KLAY-KSP]
+* KSLPTrust
+  * [KUSDT-KDAI LP, KETH-KUSDT LP, KETH_KWBTC LP, KETH_KXRP LP]
 
 <br />
 

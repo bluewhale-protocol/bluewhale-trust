@@ -7,9 +7,11 @@
 * [KctTrust](./KctTrust/README.md)
   * [KUSDT-KDAI]
 * [KctTrustV2](./KctTrustV2/README.md)
-  * [KORC-KDAI]
+  * [KORC-KDAI, KORC-KUSDT, KORC-KXRP, KSP-KORC, KSP-KDAI, KSP-KUSDT, KSP-KXRP]
 * [KlayTrust](./KlayTrust/README.md)
   * [KLAY-KUSDT, KLAY-KDAI]
 * [KlayTrustV2](./KlayTrustV2/README.md)
   * [KLAY-KXRP, KLAY-KETH, KLAY-KORC, KLAY-KSP]
+* KSLPTrust
+  * [KUSDT-KDAI LP, KETH-KUSDT LP, KETH_KWBTC LP, KETH_KXRP LP]
 
